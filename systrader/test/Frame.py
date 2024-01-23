@@ -7,7 +7,7 @@ class Frame:
     def __init__(self, input_data, interval='1m'):
         self.data = self._process_input_data(input_data) if not isinstance(input_data, dict) else input_data
         self.interval = interval
-        asyncio.run(self._fill_missing_timestamps())
+        #asyncio.run(self._fill_missing_timestamps())
 
     def _process_input_data(self, input_data):
         data_dict = {}
@@ -54,9 +54,19 @@ class Frame:
         header = "Timestamp\t" + "\t".join(sorted(self.data.keys())) + "\n"
         lines = [header]
         all_timestamps = sorted(set(ts for code in self.data for ts in self.data[code]))
+        
         for timestamp in all_timestamps:
-            line = [timestamp] + [str(self.data[code].get(timestamp, ['NaN'])[0]) for code in sorted(self.data.keys())]
+            line = [timestamp]
+            for code in sorted(self.data.keys()):
+                # 데이터가 없는 경우에 대한 처리
+                values = self.data[code].get(timestamp)
+                if values is None:
+                    line.append('NaN')
+                else:
+                    # float 객체인 경우 직접 변환
+                    line.append(str(values[0] if isinstance(values, list) else values))
             lines.append("\t".join(line) + "\n")
+
         return ''.join(lines)
 
     def __getitem__(self, key):
@@ -68,6 +78,18 @@ class Frame:
         column_data = {code: {timestamp: values[column_index] for timestamp, values in timestamps.items()}
                        for code, timestamps in self.data.items()}
         return Frame(column_data, self.interval)
+    
+    def window(self, length=10):
+        # 모든 Timestamp를 정렬하여 마지막 'length' 개를 선택
+        all_timestamps = sorted(set(ts for code in self.data for ts in self.data[code]))
+        selected_timestamps = all_timestamps[-length:]
+
+        # 선택된 Timestamp에 해당하는 데이터만 추출
+        windowed_data = {}
+        for code in self.data:
+            windowed_data[code] = {ts: self.data[code][ts] for ts in selected_timestamps if ts in self.data[code]}
+
+        return Frame(windowed_data, self.interval)
 
 # 예시 사용법
 # frame = Frame(input_data)

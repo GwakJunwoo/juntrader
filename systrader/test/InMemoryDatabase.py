@@ -6,6 +6,10 @@ import aiosqlite
 class InMemoryDatabase:
     def __init__(self):
         self.connection = None
+        self.listeners = []
+
+    def add_listener(self, listener):
+        self.listeners.append(listener)
 
     async def initialize_db(self):
         # 데이터베이스 초기화
@@ -96,7 +100,9 @@ class InMemoryDatabase:
                             chart_dict['volume']
                         )
                     )
+
             await self.connection.commit()
+            for listener in self.listeners: await listener.notify()
 
 #    async def get_real_time_chart_data(self, interval):
 #        # 비동기적으로 차트 데이터 조회

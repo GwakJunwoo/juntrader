@@ -12,6 +12,7 @@ class SingletonMeta(type):
 class Data(metaclass=SingletonMeta):
     def __init__(self, database):
         self.database = database
+        self.interval = ['1m', '5m']
         # 필요한 초기화 로직
 
     @lru_cache(maxsize=1024)
@@ -22,10 +23,11 @@ class Data(metaclass=SingletonMeta):
         # Lazy Loading을 사용하여 필요할 때 데이터를 로드합니다.
         return await self._load_tick_data()
 
-    @lru_cache(maxsize=1024)
-    async def intraday(self, interval='5m'):
+#    @lru_cache(maxsize=1024)
+    async def intraday(self, interval='1m'):
         # 실시간 인트라데이 데이터 로딩
         # 예: {code: {timestamp: ohlcv}}
+        if interval not in self.interval: self.interval.append(interval)
         return await self._load_intraday_data(interval)
 
     @lru_cache(maxsize=1024)
@@ -40,10 +42,13 @@ class Data(metaclass=SingletonMeta):
 
     async def _load_intraday_data(self, interval):
         # 인트라데이 데이터 로딩 로직 구현
-        pass
+        return await self.database.get_real_time_chart_data_as_frame(interval)
 
     async def _load_historical_data(self, interval, start_date):
         # 역사적 데이터 로딩 로직 구현
         pass
+
+    def get_interval(self):
+        return self.interval
 
     # SMA 및 기타 필요한 계산 메소드 추가 가능
