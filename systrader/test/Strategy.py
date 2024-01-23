@@ -1,59 +1,26 @@
-from Data import Data
-from abc import ABC, abstractmethod
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
-class IntradayStrategy(ABC):
-    def __init__(self):
-        self.interested_data_types = set()
-        self.initialized = False  # 최초 실행 여부를 추적하는 변수
+class MomentumStrategy:
+    def __init__(self, data, executor):
+        self.data = data
+        self.executor = executor  # 멀티스레딩을 위한 Executor
 
-    def is_interested(self, data_type):
-        return data_type in self.interested_data_types
-
-    def update_interested_data_types(self):
-        if not self.initialized:
-            # 관심 데이터 타입 설정
-            self.interested_data_types = self.define_interested_data_types()
-            self.initialized = True  # 초기화 완료 상태로 설정
-
-    @abstractmethod
-    def define_interested_data_types(self):
-        # 각 전략 클래스에서 관심있는 데이터 타입을 정의하기 위해 오버라이드해야 함
-        pass
-
-    @abstractmethod
     async def execute(self):
-        pass
+        # 실시간 데이터를 사용하여 전략 실행
+        tick_data = await self.data.tick()
+        intraday_data = await self.data.intraday('5m')
+        historical_data = await self.data.historical('1d', start_date='2023-01-01')
 
+        # 전략 로직 구현
+        # 예: 모멘텀 기반의 매수/매도 결정
+        # ...
 
-class MomentumStrategy(IntradayStrategy):
-    async def execute(self):
-        # 최초 실행 시에만 관심 데이터 타입 업데이트
-        self.update_interested_data_types()
-
-        # 클래스 메소드로 데이터 접근
-        intraday_data = await Data.intraday()
-        price = intraday_data['close'].iloc[-1]
-
-        sma_20_price = Data.SMA(intraday_data['close'], 20).iloc[-1]
-        sma_5_close = Data.SMA(await Data.daily()['close'], 5).iloc[-1]
-
-        five_min_close_data = await Data.intraday('5m')
-        mean_lastest_5min_close = Data.average(five_min_close_data['close'], 20)
-
-        # 트레이딩 시그널 생성
-        if price > sma_20_price and price > sma_5_close:
-            if price > mean_lastest_5min_close:
-                return 1
-        else:
-            return 0
-
-    def define_interested_data_types(self):
-        # MomentumStrategy가 관심 있는 데이터 타입 정의
-        return {'intraday', 'daily', 'intraday_5m'}
-
+    def start(self):
+        # 비동기 전략 실행을 멀티스레딩 환경에서 처리
+        loop = asyncio.get_event_loop()
+        loop.run_in_executor(self.executor, asyncio.run, self.execute())
 
 class TestStrategy:
-    def update(self, data):
-        #print(data)
+    async def execute(self, data):
         pass
-

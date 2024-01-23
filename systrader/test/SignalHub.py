@@ -1,6 +1,5 @@
 from MinChartData import MinChartData
 import asyncio
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 class SignalHub:
     def __init__(self, InMemoryDatabase):
@@ -37,16 +36,26 @@ class SignalHub:
             for interval in chart_dict:
                 await self.InMemoryDatabase.append_or_update_interval_data(interval, chart_dict[interval])
 
+    async def update_real_time_data(self):
+        # 실시간 데이터 업데이트 로직 구현
+        new_data = await self.fetch_new_market_data()
+        await self.set_tick(new_data)
+
+    async def fetch_new_market_data(self):
+        # 실제 시장 데이터를 가져오는 메서드 구현
+        # ...
+        return new_market_data
+    
     async def notify_strategies(self, newData):
         # 전략에 대한 알림 처리
         tasks = []
         for strategy in self._strategies:
-            if asyncio.iscoroutinefunction(strategy.update):
+            if asyncio.iscoroutinefunction(strategy.execute):
                 # 전략의 update가 코루틴 함수인 경우
-                task = strategy.update(newData)
+                task = strategy.execute(newData)
             else:
                 # 전략의 update가 일반 함수인 경우
                 loop = asyncio.get_running_loop()
-                task = loop.run_in_executor(None, strategy.update, newData)
+                task = loop.run_in_executor(None, strategy.execute, newData)
             tasks.append(task)
         await asyncio.gather(*tasks)

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 from numba import jit
 import asyncio
@@ -23,6 +23,11 @@ class MinChartData:
         for interval in self.intervals:
             minute_timestamp = self.adjust_timestamp(timestamp, interval)
             await self.process_tick_for_interval(code, minute_timestamp, price, volume, interval)
+        
+        # 빈 간격을 채우는 로직 추가
+        for interval in self.intervals:
+            await self.fill_empty_intervals(code, interval, timestamp)
+
         return await self.get_data_to_return(timestamp)
 
     def adjust_timestamp(self, timestamp, interval):
@@ -97,3 +102,43 @@ class MinChartData:
                 }
                 interval_data[code] = candle_data
         return interval_data
+    
+    async def fill_empty_intervals(self, code, interval, current_timestamp):
+        # 빈 간격을 찾아서 채우는 로직
+        last_candle_time = self.get_last_candle_time(code, interval)
+        if last_candle_time:
+            while last_candle_time < current_timestamp:
+                last_candle_time = self.increment_timestamp(last_candle_time, interval)
+                if last_candle_time not in self.data[code][interval]:
+                    self._fill_with_previous_close(code, last_candle_time, interval)
+
+    def _fill_with_previous_close(self, code, timestamp, interval):
+        # 이전 close 가격으로 새 캔들 생성
+        previous_candle = self.get_previous_candle(code, interval, timestamp)
+        if previous_candle:
+            self.data[code][interval][timestamp] = {
+                'open': previous_candle['close'],
+                'high': previous_candle['close'],
+                'low': previous_candle['close'],
+                'close': previous_candle['close'],
+                'volume': 0
+            }
+
+    def get_last_candle_time(self, code, interval):
+        # 마지막 캔들의 시간을 반환
+        if code in self.data and interval in self.data[code]:
+            return max(self.data[code][interval].keys())
+        return None
+
+    def get_previous_candle(self, code, interval, timestamp):
+        # 주어진 시간 이전의 마지막 캔들을 반환
+        sorted_candles = sorted(self.data[code][interval].items())
+        for candle_time, candle_data in sorted_candles:
+            if candle_time < timestamp:
+                return candle_data
+        return None
+
+    def increment_timestamp(self, timestamp, interval):
+        # 주어진 간격만큼 시간을 증가시키는 함수
+        minutes = int(interval[:-1])
+        return timestamp + timedelta(minutes=minutes)

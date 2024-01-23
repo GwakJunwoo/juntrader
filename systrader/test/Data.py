@@ -1,51 +1,49 @@
 import asyncio
-from Frame import Frame
 from functools import lru_cache
-import numpy as np
-from numba import jit
 
 class SingletonMeta(type):
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
-            instance = super().__call__(*args, **kwargs)
-            cls._instances[cls] = instance
+            cls._instances[cls] = super(SingletonMeta, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
 class Data(metaclass=SingletonMeta):
-    database = None  # 클래스 수준의 database 속성
+    def __init__(self, database):
+        self.database = database
+        # 필요한 초기화 로직
 
-    @classmethod
-    def set_database(cls, database_instance):
-        cls.database = database_instance
-
-    @classmethod
     @lru_cache(maxsize=1024)
-    async def _get_data(cls, interval):
-        # 데이터베이스에서 실시간 차트 데이터를 Frame 객체로 가져옵니다.
-        frame = await cls.database.get_real_time_chart_data_as_frame(interval)
-        return frame
+    async def tick(self):
+        # 실시간 틱 데이터 로딩
+        # 예: {code: {timestamp: (price, volume)}}
+        # 데이터베이스에서 틱 데이터를 가져옵니다.
+        # Lazy Loading을 사용하여 필요할 때 데이터를 로드합니다.
+        return await self._load_tick_data()
 
-    @classmethod
-    async def intraday(cls, freq='1m'):
-        # 주어진 빈도(freq)에 대한 인트라데이 차트 데이터를 Frame 객체로 반환합니다.
-        return await cls._get_data(freq)
+    @lru_cache(maxsize=1024)
+    async def intraday(self, interval='5m'):
+        # 실시간 인트라데이 데이터 로딩
+        # 예: {code: {timestamp: ohlcv}}
+        return await self._load_intraday_data(interval)
 
-    @staticmethod
-    @jit
-    def SMA(data, window):
-        # Numba를 사용한 JIT 컴파일로 SMA 계산을 최적화
-        return np.convolve(data, np.ones(window)/window, mode='valid')
+    @lru_cache(maxsize=1024)
+    async def historical(self, interval='1d', start_date=None):
+        # 역사적 데이터 로딩
+        # 예: {code: {timestamp: ohlcv}}
+        return await self._load_historical_data(interval, start_date)
 
-    @staticmethod
-    @jit
-    def average(data, window):
-        # Numba를 사용한 JIT 컴파일로 평균 계산을 최적화
-        return np.mean(data[-window:])
+    async def _load_tick_data(self):
+        # 틱 데이터 로딩 로직 구현
+        pass
 
-# 예시 사용법
-# data = Data(database_instance)
-# intraday_data = await data.intraday_chart('1m')
-# sma_20 = Data.SMA(intraday_data['close'], 20)
-# avg_5 = Data.average(intraday_data['close'], 5)
+    async def _load_intraday_data(self, interval):
+        # 인트라데이 데이터 로딩 로직 구현
+        pass
+
+    async def _load_historical_data(self, interval, start_date):
+        # 역사적 데이터 로딩 로직 구현
+        pass
+
+    # SMA 및 기타 필요한 계산 메소드 추가 가능

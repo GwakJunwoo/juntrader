@@ -1,5 +1,5 @@
 from Builder import Builder
-from systrader.test.Frame_old import Frame
+from Frame_old import Frame
 from Strategy import TestStrategy
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
