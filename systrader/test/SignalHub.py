@@ -1,6 +1,7 @@
 from MinChartData import MinChartData
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import debugpy
 
 class SignalHub:
     def __init__(self, InMemoryDatabase):
@@ -50,6 +51,7 @@ class SignalHub:
 #        await self.notify_strategies()
     
     async def notify_strategies(self):
+        debugpy.debug_this_thread()
         loop = asyncio.get_running_loop()
 
         with ThreadPoolExecutor() as executor:

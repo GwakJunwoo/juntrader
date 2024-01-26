@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import numpy as np
 from numba import jit
+import debugpy
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
@@ -37,6 +38,7 @@ class MinChartData:
         return timestamp.replace(minute=adjusted_minute, second=0, microsecond=0)
 
     async def process_tick_for_interval(self, code, minute_timestamp, price, volume, interval):
+        debugpy.debug_this_thread()
         # 멀티스레딩을 사용하여 틱 데이터를 각 간격에 따라 처리
         loop = asyncio.get_event_loop()
         with ThreadPoolExecutor() as executor:

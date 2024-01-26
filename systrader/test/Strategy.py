@@ -1,5 +1,6 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from Data import Data
 
 class MomentumStrategy:
     def _set_params(self, data):
@@ -12,8 +13,10 @@ class MomentumStrategy:
         intraday_data_5 = await self.data.intraday('5m')
 
     
-        print(intraday_data_1.window(length=2)['close'])
-        print(intraday_data_5.window(length=2)['close'])
+        trigger = Data.SMA(intraday_data_1.window(length=10)['close'], {'windows': 10})
+        thred = Data.mean(intraday_data_5.window(length=10)['close'], {'windows': 10})
+
+        if trigger > thred: 
 
 #    def start(self):
 #        # 비동기 전략 실행을 멀티스레딩 환경에서 처리

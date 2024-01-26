@@ -52,3 +52,11 @@ class Data(metaclass=SingletonMeta):
         return self.interval
 
     # SMA 및 기타 필요한 계산 메소드 추가 가능
+
+    @classmethod
+    def SMA(cls, frame, params):
+        pass
+
+    @classmethod
+    def mean(cls, frame, prarms):
+        pass
