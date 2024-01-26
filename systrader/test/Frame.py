@@ -79,6 +79,78 @@ class Frame:
                        for code, timestamps in self.data.items()}
         return Frame(column_data, self.interval)
     
+    def _compare_frames(self, other, op):
+        # Frame 간 비교
+        if not isinstance(other, Frame):
+            raise ValueError("Comparison is only supported between Frame objects.")
+
+        result_data = {}
+        for code in self.data:
+            if code in other.data:
+                result_data[code] = {}
+                for timestamp in self.data[code]:
+                    if timestamp in other.data[code]:
+                        self_value = self.data[code][timestamp]
+                        other_value = other.data[code][timestamp]
+                        result_data[code][timestamp] = 1 if op(self_value, other_value) else 0
+
+        return Frame(result_data, self.interval)
+
+    def _compare_with_scalar(self, scalar, op):
+        # Frame과 스칼라 값 비교
+        result_data = {}
+        for code, timestamps in self.data.items():
+            result_data[code] = {timestamp: 1 if op(value, scalar) else 0 for timestamp, value in timestamps.items()}
+        return Frame(result_data, self.interval)
+
+    def __lt__(self, other):
+        if isinstance(other, Frame):
+            return self._compare_frames(other, lambda self_value, other_value: self_value < other_value)
+        elif isinstance(other, (int, float)):
+            return self._compare_with_scalar(other, lambda x, y: x < y)
+        else:
+            raise NotImplementedError("Unsupported operand type for <")
+        
+    def __le__(self, other):
+        if isinstance(other, Frame):
+            return self._compare_frames(other, lambda self_value, other_value: self_value <= other_value)
+        elif isinstance(other, (int, float)):
+            return self._compare_with_scalar(other, lambda x, y: x <= y)
+        else:
+            raise NotImplementedError("Unsupported operand type for <=")
+
+    def __eq__(self, other):
+        if isinstance(other, Frame):
+            return self._compare_frames(other, lambda self_value, other_value: self_value == other_value)
+        elif isinstance(other, (int, float)):
+            return self._compare_with_scalar(other, lambda x, y: x == y)
+        else:
+            raise NotImplementedError("Unsupported operand type for ==")
+
+    def __ne__(self, other):
+        if isinstance(other, Frame):
+            return self._compare_frames(other, lambda self_value, other_value: self_value != other_value)
+        elif isinstance(other, (int, float)):
+            return self._compare_with_scalar(other, lambda x, y: x != y)
+        else:
+            raise NotImplementedError("Unsupported operand type for !=")
+
+    def __gt__(self, other):
+        if isinstance(other, Frame):
+            return self._compare_frames(other, lambda self_value, other_value: self_value > other_value)
+        elif isinstance(other, (int, float)):
+            return self._compare_with_scalar(other, lambda x, y: x > y)
+        else:
+            raise NotImplementedError("Unsupported operand type for >")
+
+    def __ge__(self, other):
+        if isinstance(other, Frame):
+            return self._compare_frames(other, lambda self_value, other_value: self_value >= other_value)
+        elif isinstance(other, (int, float)):
+            return self._compare_with_scalar(other, lambda x, y: x >= y)
+        else:
+            raise NotImplementedError("Unsupported operand type for >=")
+    
     def window(self, length=10):
         # 모든 Timestamp를 정렬하여 마지막 'length' 개를 선택
         all_timestamps = sorted(set(ts for code in self.data for ts in self.data[code]))

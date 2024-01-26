@@ -1,5 +1,7 @@
 import asyncio
 from functools import lru_cache
+from Frame import Frame
+import numpy as np
 
 class SingletonMeta(type):
     _instances = {}
@@ -53,10 +55,86 @@ class Data(metaclass=SingletonMeta):
 
     # SMA 및 기타 필요한 계산 메소드 추가 가능
 
-    @classmethod
+    #TODO
+    # 테스트해봐야 함
     def SMA(cls, frame, params):
+        window_size = params.get('windows', 10)
+        sma_frame_data = {}
+
+        for code, timestamps in frame.data.items():
+            values = list(timestamps.values())
+            sma_values = [np.nanmean(values[max(0, i - window_size):i]) for i in range(1, len(values) + 1)]
+            sma_frame_data[code] = dict(zip(timestamps.keys(), sma_values))
+
+        return Frame(sma_frame_data, frame.interval)
+
+    @classmethod
+    def mean(cls, frame, params):
+        window_size = params.get('windows', 10)
+        mean_frame_data = {}
+
+        for code, timestamps in frame.data.items():
+            values = list(timestamps.values())
+            mean_values = [np.mean(values[max(0, i - window_size):i]) for i in range(1, len(values) + 1)]
+            mean_frame_data[code] = dict(zip(timestamps.keys(), mean_values))
+
+        return Frame(mean_frame_data, frame.interval)
+
+    @classmethod
+    def EMA(cls, frame, params):
+        period = params.get('period', 12)
+        ema_frame_data = {}
+
+        for code, timestamps in frame.data.items():
+            values = list(timestamps.values())
+            ema_values = cls._calculate_ema(values, period)
+            ema_frame_data[code] = dict(zip(timestamps.keys(), ema_values))
+
+        return Frame(ema_frame_data, frame.interval)
+
+    @staticmethod
+    def _calculate_ema(values, period):
+        ema = []
+        multiplier = 2 / (period + 1)
+        for i, value in enumerate(values):
+            if i < period:
+                ema.append(np.nan)
+                continue
+            if i == period:
+                initial_ema = np.mean(values[:period])
+                ema.append(initial_ema)
+            else:
+                ema_value = (value - ema[-1]) * multiplier + ema[-1]
+                ema.append(ema_value)
+        return ema
+    
+    @classmethod
+    def ADX(cls, frame, period=14):
+        # ADX 계산 로직
+        # 이 메서드는 실제 ADX 계산 방법에 따라 구현해야 합니다.
         pass
 
     @classmethod
-    def mean(cls, frame, prarms):
+    def ParabolicSAR(cls, frame):
+        # 파라볼릭 SAR 계산 로직
+        pass
+
+    @classmethod
+    def IchimokuCloud(cls, frame):
+        # 일목균형표 계산 로직
+        pass
+
+    @classmethod
+    def CCI(cls, frame, period=20):
+        # CCI 계산 로직
+        pass
+
+    @classmethod
+    def Momentum(cls, frame, period=10):
+        # 모멘텀 계산 로직
+        pass
+
+    @classmethod
+    def RSI(cls, frame, period=14):
+        # RSI 계산 로직
         pass
